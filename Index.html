@@ -3,109 +3,178 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Minesweeper</title>
+  <title>Blackjack</title>
   <style>
-    .cell {
-      width: 20px;
-      height: 20px;
-      border: 1px solid #ccc;
-      display: inline-block;
+    body {
+      font-family: Arial, sans-serif;
+    }
+    #container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    #game {
+      border: 2px solid black;
+      padding: 20px;
+      border-radius: 10px;
+      background-color: #1a1a1a;
+      color: white;
       text-align: center;
+    }
+    #buttons {
+      margin-top: 20px;
+    }
+    button {
+      padding: 10px 20px;
+      margin: 0 10px;
+      border-radius: 5px;
+      cursor: pointer;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      outline: none;
+    }
+    button:hover {
+      background-color: #0056b3;
     }
   </style>
 </head>
 <body>
-  <div id="board"></div>
+  <div id="container">
+    <div id="game">
+      <h1>Blackjack</h1>
+      <div id="player-hand"></div>
+      <div id="dealer-hand"></div>
+      <div id="result"></div>
+      <div id="buttons">
+        <button id="hit-button">Hit</button>
+        <button id="stand-button">Stand</button>
+        <button id="deal-button">Deal</button>
+      </div>
+    </div>
+  </div>
   <script>
-    const rows = 10;
-    const cols = 10;
-    const numMines = 20;
+    const cards = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
+    const suits = ['♠', '♣', '♦', '♥'];
 
-    let board = [];
-    let revealed = [];
+    let deck = [];
+    let playerHand = [];
+    let dealerHand = [];
+    let playerScore = 0;
+    let dealerScore = 0;
 
-    function initializeBoard() {
-      for (let i = 0; i < rows; i++) {
-        board[i] = [];
-        revealed[i] = [];
-        for (let j = 0; j < cols; j++) {
-          board[i][j] = 0;
-          revealed[i][j] = false;
-        }
-      }
-
-      // Place mines randomly
-      let minesPlaced = 0;
-      while (minesPlaced < numMines) {
-        let randRow = Math.floor(Math.random() * rows);
-        let randCol = Math.floor(Math.random() * cols);
-        if (board[randRow][randCol] !== -1) {
-          board[randRow][randCol] = -1;
-          minesPlaced++;
-        }
-      }
-
-      // Calculate neighboring mines count
-      for (let i = 0; i < rows; i++) {
-        for (let j = 0; j < cols; j++) {
-          if (board[i][j] !== -1) {
-            let count = 0;
-            for (let x = Math.max(0, i - 1); x <= Math.min(i + 1, rows - 1); x++) {
-              for (let y = Math.max(0, j - 1); y <= Math.min(j + 1, cols - 1); y++) {
-                if (board[x][y] === -1) {
-                  count++;
-                }
-              }
-            }
-            board[i][j] = count;
-          }
+    function createDeck() {
+      for (let i = 0; i < cards.length; i++) {
+        for (let j = 0; j < suits.length; j++) {
+          deck.push(cards[i] + suits[j]);
         }
       }
     }
 
-    function reveal(row, col) {
-      if (row < 0 || row >= rows || col < 0 || col >= cols || revealed[row][col]) {
-        return;
-      }
-
-      revealed[row][col] = true;
-
-      if (board[row][col] === -1) {
-        alert('Game Over!');
-        // Reset the game
-        initializeBoard();
-        renderBoard();
-        return;
-      }
-
-      if (board[row][col] === 0) {
-        for (let x = Math.max(0, row - 1); x <= Math.min(row + 1, rows - 1); x++) {
-          for (let y = Math.max(0, col - 1); y <= Math.min(col + 1, cols - 1); y++) {
-            reveal(x, y);
-          }
-        }
+    function shuffleDeck() {
+      for (let i = deck.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [deck[i], deck[j]] = [deck[j], deck[i]];
       }
     }
 
-    function renderBoard() {
-      const boardElement = document.getElementById('board');
-      boardElement.innerHTML = '';
+    function dealCard(hand) {
+      const card = deck.pop();
+      hand.push(card);
+      return card;
+    }
 
-      for (let i = 0; i < rows; i++) {
-        for (let j = 0; j < cols; j++) {
-          const cell = document.createElement('div');
-          cell.classList.add('cell');
-          cell.textContent = revealed[i][j] ? board[i][j] : '';
-          cell.addEventListener('click', () => reveal(i, j));
-          boardElement.appendChild(cell);
+    function calculateScore(hand) {
+      let score = 0;
+      let hasAce = false;
+      for (const card of hand) {
+        const value = card.slice(0, -1);
+        if (value === 'A') {
+          hasAce = true;
+          score += 11;
+        } else if (['K', 'Q', 'J'].includes(value)) {
+          score += 10;
+        } else {
+          score += parseInt(value);
         }
-        boardElement.appendChild(document.createElement('br'));
+      }
+      if (hasAce && score > 21) {
+        score -= 10;
+      }
+      return score;
+    }
+
+    function displayHand(hand, element) {
+      element.innerHTML = '';
+      hand.forEach(card => {
+        const cardElement = document.createElement('div');
+        cardElement.textContent = card;
+        element.appendChild(cardElement);
+      });
+    }
+
+    function resetGame() {
+      deck = [];
+      playerHand = [];
+      dealerHand = [];
+      playerScore = 0;
+      dealerScore = 0;
+      createDeck();
+      shuffleDeck();
+      displayHand(playerHand, document.getElementById('player-hand'));
+      displayHand(dealerHand, document.getElementById('dealer-hand'));
+      document.getElementById('result').textContent = '';
+    }
+
+    function checkWinner() {
+      if (playerScore === 21 && playerHand.length === 2) {
+        document.getElementById('result').textContent = 'Blackjack! You win!';
+      } else if (playerScore > 21) {
+        document.getElementById('result').textContent = 'Busted! You lose!';
+      } else if (dealerScore > 21) {
+        document.getElementById('result').textContent = 'Dealer busted! You win!';
+      } else if (playerScore > dealerScore) {
+        document.getElementById('result').textContent = 'You win!';
+      } else if (playerScore < dealerScore) {
+        document.getElementById('result').textContent = 'You lose!';
+      } else {
+        document.getElementById('result').textContent = 'It\'s a tie!';
       }
     }
 
-    initializeBoard();
-    renderBoard();
+    document.getElementById('deal-button').addEventListener('click', () => {
+      resetGame();
+      dealCard(playerHand);
+      dealCard(dealerHand);
+      dealCard(playerHand);
+      dealCard(dealerHand);
+      displayHand(playerHand, document.getElementById('player-hand'));
+      displayHand(dealerHand, document.getElementById('dealer-hand'));
+      playerScore = calculateScore(playerHand);
+      dealerScore = calculateScore(dealerHand);
+    });
+
+    document.getElementById('hit-button').addEventListener('click', () => {
+      if (playerScore < 21) {
+        dealCard(playerHand);
+        displayHand(playerHand, document.getElementById('player-hand'));
+        playerScore = calculateScore(playerHand);
+      }
+      if (playerScore >= 21) {
+        checkWinner();
+      }
+    });
+
+    document.getElementById('stand-button').addEventListener('click', () => {
+      while (dealerScore < 17) {
+        dealCard(dealerHand);
+        dealerScore = calculateScore(dealerHand);
+      }
+      checkWinner();
+    });
+
+    resetGame();
   </script>
 </body>
 </html>
-
